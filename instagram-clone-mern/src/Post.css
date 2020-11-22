@@ -1,0 +1,9 @@
+.post__image {
+  width: 100%;
+  /* keeping aspect ratio = responsive */
+  object-fit: contain;
+}
+
+.post__text {
+  font-weight: normal;
+}
