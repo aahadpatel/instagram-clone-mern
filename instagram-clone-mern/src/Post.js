@@ -1,15 +1,88 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import "./Post.css";
 import Avatar from "@material-ui/core/Avatar";
+import { db } from './firebase';
+import firebase from 'firebase';
 
-function Post() {
+function Post({ postId, user, username, caption, imageUrl }) {
+    const [comments, setComments] = useState([]);
+    const [comment, setComment] = useState('');
+
+    // use effect needed to populate comments 
+
+    useEffect(() => {
+        let unsubscribe; 
+        if (postId) {
+            unsubscribe = db
+                .collection("posts")
+                .doc(postId)
+                .collection("comments")
+                .orderBy('timestamp', 'desc')
+                .onSnapshot((snapshot) => {
+                    setComments(snapshot.docs.map((doc) => doc.data()));
+                });
+        }
+
+        return () => {
+            unsubscribe();
+        };
+    }, [postId]);
+    
+    const postComment = (event) => {
+        event.preventDefault();
+
+        db.collection("posts").doc(postId).collection("comments").add({
+            text: comment,
+            // grab the name of the user who SIGNED IN
+            username: user.displayName,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        // clear the box
+        setComment('');
+    }
+
     return (
         <div className="post">
-            <h3>Username</h3>
-            <img className="post__image" src="https://www.freecodecamp.org/news/content/images/2020/02/Ekran-Resmi-2019-11-18-18.08.13.png"></img>
+            <div className="post__header">
+                <Avatar
+                    className="post__avatar"
+                    alt="Aahad"
+                    src="https://image.shutterstock.com/image-illustration/male-default-avatar-profile-gray-260nw-582509287.jpg"
+                />
+                <h3>{username}</h3>
+            </div>
+            <img className="post__image" src={imageUrl} alt=""></img>
 
-            <h4 className="post__text"><strong>aahadpatel</strong> default caption</h4>
+        <h4 className="post__text"><strong>{username}</strong> {caption}</h4>
+
+        <div className="post__comments">
+            {comments.map((comment) => (
+                <p>
+                    <strong>{comment.username}</strong> {comment.text}
+                </p>
+            ))}
         </div>
+        {user && (
+            <form className="post__commentBox">
+            <input
+            className="post__input"
+            type="text"
+            placeholder="Add a comment..."
+            value={comment}
+            onChange = {(e) => setComment(e.target.value)}   
+            />
+            <button
+                className="post__button"
+                // disabled if there is no comment
+                disabled={!comment}
+                type="submit"
+                onClick={postComment}
+            >
+                Post
+            </button>
+        </form>
+        )}  
+    </div>
     )
 }
 
